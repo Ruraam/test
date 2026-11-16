@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { sanitizeProviderHeaders, sanitizeProviderUrl } from "./privacy-headers"
+import { sanitizeProviderHeaders, sanitizeProviderPayload, sanitizeProviderUrl } from "./privacy-headers"
 
 describe("sanitizeProviderHeaders", () => {
   test("removes persistent host and OpenCode session/project identifiers", () => {
