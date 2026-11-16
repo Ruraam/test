@@ -3,7 +3,7 @@ import { base64Encode } from "@opencode/util/encode"
 import { useParams } from "@solidjs/router"
 import { batch, createEffect, createMemo, createRoot, createSignal, onCleanup, untrack } from "solid-js"
 import { Predicate, Schema, SchemaGetter } from "effect"
-import { useModels } from "@/providers/models/models"
+import { DESKTOP_MODEL, desktopOnlyModels, isDesktopModel, resolvePlatformModel, useModels } from "@/providers/models/models"
 import { useSettings } from "@/settings/model"
 import { useProviders } from "@/providers/catalog/providers"
 import { Persist, persisted } from "@/runtime/persistence/storage"
@@ -14,6 +14,7 @@ import {
   createModelSelectionState,
   editSelection,
   selectChosenModel,
+  normalizeSelectionModel,
   selectPreview,
   selectSession,
   selectVariant,
@@ -173,7 +174,18 @@ function openWorkspace(key: string, scope: ServerScope, directory: string, platf
     )
 
     const stored = () =>
-      Object.fromEntries(Object.entries(saved.session).map(([sessionID, entry]) => [sessionID, readStored(entry)]))
+      Object.fromEntries(
+        Object.entries(saved.session).map(([sessionID, entry]) => {
+          const selection = readStored(entry)
+
+          return [
+            sessionID,
+            platform.platform === "desktop"
+              ? normalizeSelectionModel(selection, DESKTOP_MODEL, INHERIT_VARIANT)
+              : selection,
+          ]
+        }),
+      )
 
     const [state, setState] = createSignal(
       createModelSelectionState(
@@ -232,7 +244,20 @@ function openWorkspace(key: string, scope: ServerScope, directory: string, platf
 
     createEffect(() => {
       if (!savedReady()) return
-      untrack(() => dispatch({ type: "hydrated", sessions: stored() }))
+      const sessions = stored()
+      untrack(() => dispatch({ type: "hydrated", sessions }))
+
+      // Normalize legacy Desktop selections in persisted workspace storage, not just at render time.
+      if (platform.platform === "desktop") {
+        const normalized = Object.fromEntries(
+          Object.entries(sessions).map(([sessionID, selection]) => [
+            sessionID,
+            selection && writeStored(selection),
+          ]),
+        )
+        if (Object.keys(normalized).length > 0 && JSON.stringify(normalized) !== JSON.stringify(saved.session))
+          setSaved("session", normalized)
+      }
     })
 
     // Closing waits for a pending load, so a selection promoted into an unshown workspace is written, not dropped.
@@ -359,6 +384,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const [draft, setDraft] = createSignal<Selection>()
 
     const validModel = (model: Pick<ModelKey, "providerID" | "modelID">) => {
+      if (platform.platform === "desktop" && !isDesktopModel(model)) return false
       const provider = providers.all().get(model.providerID)
 
       return !!provider?.models[model.modelID] && connected().has(model.providerID)
@@ -465,8 +491,10 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       if (!configuredModel.ready()) return
 
       // Catalog availability must not replace a user's choice with a default on the next submission.
+      const selected = selectChosenModel(scope(), durable(), agent.current()?.name)
+
       return (
-        selectChosenModel(scope(), durable(), agent.current()?.name) ??
+        resolvePlatformModel(platform.platform, selected) ??
         firstModel(() => agent.current()?.model, fallback)
       )
     })
@@ -485,6 +513,8 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     // here: a local selection, else the Session's durable model unless the local selection picked another agent.
     const preview = () => {
       if (!ready()) return
+
+      if (platform.platform === "desktop") return { model: DESKTOP_MODEL, selected: INHERIT_VARIANT }
 
       return selectPreview(scope(), durable())
     }
@@ -564,7 +594,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       current,
       recent,
       favorite: { list: favorite, toggle: models.favorite.toggle },
-      list: models.list,
+      list: () => desktopOnlyModels(models.list(), platform.platform === "desktop"),
       trackSessionCommit(sessionID: string, selection: { agent: string; model: ModelKey; variant?: string }) {
         const target = workspace()
 
@@ -627,9 +657,14 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         })
       },
       visible(item: ModelKey) {
+        if (platform.platform === "desktop") return isDesktopModel(item)
         return models.visible(item)
       },
       setVisibility(item: ModelKey, visible: boolean) {
+        if (platform.platform === "desktop") {
+          if (isDesktopModel(item)) models.setVisibility(item, true)
+          return
+        }
         models.setVisibility(item, visible)
       },
       variant: {

@@ -3,6 +3,7 @@ import {
   COMMIT_ACK_TIMEOUT_MS,
   createModelSelectionState,
   editSelection,
+  normalizeSelectionModel,
   selectPreview,
   selectSession,
   selectVariant,
@@ -286,5 +287,35 @@ describe("model selection machine", () => {
       selected: { type: "named", value: "high" },
     })
     expect(selectPreview({ agent: "plan", choices: {} }, durable("b", "high"))).toBeUndefined()
+  })
+})
+
+test("normalizes old persisted model choices for Desktop across every agent", () => {
+  const old = {
+    agent: "build",
+    choice: choice("paid-model"),
+    choices: { plan: choice("another-provider-model", "high") },
+  }
+
+  expect(
+    normalizeSelectionModel(
+      old,
+      { providerID: "opencode", modelID: "deepseek-v4.1-flash-free" },
+      INHERIT_VARIANT,
+    ),
+  ).toEqual({
+    agent: "build",
+    choice: {
+      providerID: "opencode",
+      modelID: "deepseek-v4.1-flash-free",
+      variant: INHERIT_VARIANT,
+    },
+    choices: {
+      plan: {
+        providerID: "opencode",
+        modelID: "deepseek-v4.1-flash-free",
+        variant: INHERIT_VARIANT,
+      },
+    },
   })
 })

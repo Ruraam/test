@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { latestModels, uniqueModels } from "./models"
+import { desktopOnlyModels, latestModels, resolvePlatformModel, uniqueModels } from "./models"
 
 const model = (provider: string, id: string, release_date: string, family?: string) => ({
   id,
@@ -52,4 +52,25 @@ test("uniqueModels keeps the first of each model in order", () => {
     { providerID: "b", modelID: "1" },
     { providerID: "a", modelID: "2" },
   ])
+})
+
+test("Desktop exposes only DeepSeek V4.1 Flash Free without changing the web catalog", () => {
+  const models = [
+    { id: "deepseek-v4.1-flash-free", provider: { id: "opencode" } },
+    { id: "deepseek-v4.1-flash", provider: { id: "opencode" } },
+    { id: "deepseek-v4.1-flash-free", provider: { id: "deepseek" } },
+  ]
+
+  expect(desktopOnlyModels(models, true)).toEqual([models[0]])
+  expect(desktopOnlyModels(models, false)).toBe(models)
+})
+
+test("Desktop replaces a persisted non-free model while web keeps the selection", () => {
+  const legacy = { providerID: "deepseek", modelID: "deepseek-v4.1-flash" }
+
+  expect(resolvePlatformModel("desktop", legacy)).toEqual({
+    providerID: "opencode",
+    modelID: "deepseek-v4.1-flash-free",
+  })
+  expect(resolvePlatformModel("web", legacy)).toBe(legacy)
 })

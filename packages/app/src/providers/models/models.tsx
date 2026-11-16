@@ -7,6 +7,20 @@ type ModelKey = { providerID: string; modelID: string }
 
 type Visibility = "show" | "hide"
 
+export const DESKTOP_MODEL = Object.freeze({ providerID: "opencode", modelID: "deepseek-v4.1-flash-free" })
+
+export function isDesktopModel(model: ModelKey) {
+  return model.providerID === DESKTOP_MODEL.providerID && model.modelID === DESKTOP_MODEL.modelID
+}
+
+export function desktopOnlyModels<T extends { id: string; provider: { id: string } }>(models: T[], desktop: boolean) {
+  return desktop ? models.filter((model) => isDesktopModel({ providerID: model.provider.id, modelID: model.id })) : models
+}
+
+export function resolvePlatformModel(platform: "web" | "desktop", selected: ModelKey | undefined) {
+  return platform === "desktop" ? DESKTOP_MODEL : selected
+}
+
 const RECENT_LIMIT = 5
 
 // luxon's diffNow().as("months") used an average month; keep the same window.

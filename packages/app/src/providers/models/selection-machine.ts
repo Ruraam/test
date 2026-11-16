@@ -17,6 +17,23 @@ export type Selection = {
   readonly choices: AgentChoices
 }
 
+/** Replace every stored per-agent model with the Desktop-only model while preserving agent choices. */
+export function normalizeSelectionModel(
+  selection: Selection | undefined,
+  model: ModelRef,
+  variant: VariantSelection,
+): Selection | undefined {
+  if (!selection) return
+
+  const choice = (value: ModelChoice): ModelChoice => ({ ...value, ...model, variant })
+
+  return {
+    ...selection,
+    choice: selection.choice && choice(selection.choice),
+    choices: Object.fromEntries(Object.entries(selection.choices).map(([agent, value]) => [agent, choice(value)])),
+  }
+}
+
 /** The agent, model and variant a submission asks the server to commit. */
 export type CommitTarget = {
   readonly agent: string
