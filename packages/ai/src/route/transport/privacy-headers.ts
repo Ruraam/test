@@ -1,14 +1,9 @@
 import type { Headers } from "effect/http"
 
-const persistentIdentityParts = new Set(["machine", "device", "installation", "install"])
-const identifierSuffixes = new Set(["id", "uuid", "identifier"])
-
 const isPersistentIdentityName = (name: string) => {
-  const parts = name.toLowerCase().split(/[-_]/)
-  const hasIdentifier = identifierSuffixes.has(parts.at(-1) ?? "")
-  if (!hasIdentifier) return false
-  const hasPersistentHostIdentity = parts.some((part) => persistentIdentityParts.has(part))
-  const hasOpenCodeSessionIdentity = parts.includes("opencode") && parts.includes("session")
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, "")
+  const hasPersistentHostIdentity = /(machine|device|installation|install).*?(id|uuid|identifier)$/.test(normalized)
+  const hasOpenCodeSessionIdentity = /opencode.*session.*(id|uuid|identifier)$/.test(normalized)
   return hasPersistentHostIdentity || hasOpenCodeSessionIdentity
 }
 
