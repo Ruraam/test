@@ -301,12 +301,15 @@ describe("RequestExecutor", () => {
         ),
       )
 
-      expect(sent).toBeUndefined()
+      expect(sent).toBeDefined()
+      expect(sent?.url).toBe("https://proxy.test/v1/chat?model=deepseek")
+      expect(Object.keys(sent?.headers ?? {})).not.toContain("x-machine-id")
+      expect(Object.keys(sent?.headers ?? {})).not.toContain("x-opencode-session-id")
     }).pipe(
       Effect.provide(
         dynamicResponse((input) =>
           Effect.sync(() => {
-            // The transport receives only the sanitized request, not the middleware's original copy.
+            sent = input.request
             return input.respond("ok")
           }),
         ),
