@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { sanitizeProviderHeaders, sanitizeProviderUrl } from "./privacy-headers"
 
 describe("sanitizeProviderHeaders", () => {
-  test("removes persistent machine, device and installation identifiers", () => {
+  test("removes persistent machine, device, installation and OpenCode session identifiers", () => {
     expect(
       sanitizeProviderHeaders({
         Authorization: "Bearer provider-token",
@@ -17,8 +17,6 @@ describe("sanitizeProviderHeaders", () => {
     ).toEqual({
       Authorization: "Bearer provider-token",
       "Content-Type": "application/json",
-      "installation_session_id": "persistent-session-uuid",
-      "X-OpenCode-Session-ID": "persistent-session-id",
     })
   })
 
