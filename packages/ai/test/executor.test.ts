@@ -769,9 +769,12 @@ describe("WebSocket channel execution", () => {
 
   it.effect("preserves close reasons and native event causes without fabricated HTTP metadata", () =>
     Effect.gen(function* () {
+      const sent: string[] = []
       class TestSocket extends EventTarget {
         readyState = globalThis.WebSocket.OPEN
-        send() {}
+        send(message: string) {
+          sent.push(message)
+        }
         close() {}
       }
       const socket = new TestSocket()
@@ -793,6 +796,10 @@ describe("WebSocket channel execution", () => {
         }),
       )
       expect(observed).toEqual({ url: "wss://provider.test/responses?model=deepseek", options: { headers: safeHeaders } })
+      yield* connection.sendText(
+        JSON.stringify({ model: "deepseek", metadata: { machine_id: "host", x_opencode_project: "project" } }),
+      )
+      expect(JSON.parse(sent[0]!)).toEqual({ model: "deepseek", metadata: {} })
       const event = new CloseEvent("close", { code: 1011, reason: "upstream trace: req_close" })
       socket.dispatchEvent(event)
       const error = yield* connection.messages.pipe(Stream.runDrain, Effect.flip)
