@@ -45,3 +45,27 @@ describe("sanitizeProviderUrl", () => {
     ).toBe("https://provider.example/v1?model=deepseek")
   })
 })
+
+describe("sanitizeProviderPayload", () => {
+  test("removes persistent identity fields recursively without touching provider session fields", () => {
+    const input = JSON.stringify({
+      model: "deepseek",
+      session_id: "provider-session",
+      metadata: {
+        machine_id: "host",
+        installation_uuid: "install",
+        x_opencode_project: "project",
+      },
+    })
+
+    expect(JSON.parse(sanitizeProviderPayload(input))).toEqual({
+      model: "deepseek",
+      session_id: "provider-session",
+      metadata: {},
+    })
+  })
+
+  test("leaves non-JSON provider frames unchanged", () => {
+    expect(sanitizeProviderPayload("[DONE]")).toBe("[DONE]")
+  })
+})
