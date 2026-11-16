@@ -7,7 +7,9 @@ const isPersistentIdentityName = (name: string) => {
   const parts = name.toLowerCase().split(/[-_]/)
   const hasIdentifier = identifierSuffixes.has(parts.at(-1) ?? "")
   if (!hasIdentifier) return false
-  return parts.some((part) => persistentIdentityParts.has(part))
+  const hasPersistentHostIdentity = parts.some((part) => persistentIdentityParts.has(part))
+  const hasOpenCodeSessionIdentity = parts.includes("opencode") && parts.includes("session")
+  return hasPersistentHostIdentity || hasOpenCodeSessionIdentity
 }
 
 /**
