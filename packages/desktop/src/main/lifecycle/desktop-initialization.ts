@@ -20,12 +20,21 @@ export class Service extends Context.Service<Service, Interface>()("opencode/des
 export const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
+    // The bundled CLI inherits this marker and applies Desktop-specific telemetry defaults.
+    process.env.OPENCODE_DESKTOP = "1"
     const logging = yield* DesktopLogging.Service
     yield* preferApplicationEnvironment
-    // System certificates, the proxy and the net log serve later network work; the first window and
-    // its IPC port do not wait for them.
+    // System certificates and proxy settings are prepared in the background. Network capture is
+    // privacy-sensitive and starts only after an explicit environment opt-in.
     yield* Effect.forkScoped(
-      prepareApplicationEnvironment.pipe(Effect.andThen(loadProxyEnvironment), Effect.andThen(logging.startNetwork)),
+      prepareApplicationEnvironment.pipe(
+        Effect.andThen(loadProxyEnvironment),
+        Effect.andThen(
+          Effect.suspend(() =>
+            process.env.OPENCODE_DESKTOP_ENABLE_NETLOG === "1" ? logging.startNetwork : Effect.void,
+          ),
+        ),
+      ),
     )
     yield* Effect.promise(() => app.whenReady())
     yield* prepareDesktop

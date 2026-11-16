@@ -149,8 +149,14 @@ Effect.gen(function* () {
   ),
   Effect.provide(
     Observability.layer({
-      endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
-      headers: process.env.OTEL_EXPORTER_OTLP_HEADERS,
+      endpoint:
+        process.env.OPENCODE_DESKTOP !== "1" || process.env.OPENCODE_DESKTOP_ENABLE_OTEL === "1"
+          ? process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+          : undefined,
+      headers:
+        process.env.OPENCODE_DESKTOP !== "1" || process.env.OPENCODE_DESKTOP_ENABLE_OTEL === "1"
+          ? process.env.OTEL_EXPORTER_OTLP_HEADERS
+          : undefined,
       client: process.env.OPENCODE_CLIENT ?? OPENCODE_ARTIFACT,
       version: OPENCODE_VERSION,
       channel: OPENCODE_CHANNEL,

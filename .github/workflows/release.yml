@@ -356,6 +356,7 @@ jobs:
         env:
           OPENCODE_TARGET: ${{ matrix.target }}
           NODE_OPTIONS: --max-old-space-size=4096
+          VITE_OPENCODE_ENABLE_SENTRY: "0"
           VITE_SENTRY_DSN: ${{ vars.WEB_SENTRY_DSN }}
           VITE_SENTRY_ENVIRONMENT: ${{ needs.plan.outputs.channel == 'latest' && 'production' || needs.plan.outputs.channel }}
           VITE_SENTRY_RELEASE: desktop@${{ needs.plan.outputs.version }}

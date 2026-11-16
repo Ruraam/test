@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   /** The release of the CLI whose server embeds this build. Absent in the hosted web app. */
   readonly VITE_OPENCODE_VERSION?: string
 
+  /** Set to "1" only for builds that explicitly opt in to Sentry reporting. */
+  readonly VITE_OPENCODE_ENABLE_SENTRY?: string
   readonly VITE_SENTRY_DSN?: string
   readonly VITE_SENTRY_ENVIRONMENT?: string
   readonly VITE_SENTRY_RELEASE?: string
