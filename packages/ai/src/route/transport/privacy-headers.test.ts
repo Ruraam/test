@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { sanitizeProviderHeaders } from "./privacy-headers"
+import { sanitizeProviderHeaders, sanitizeProviderUrl } from "./privacy-headers"
 
 describe("sanitizeProviderHeaders", () => {
   test("removes persistent machine, device and installation identifiers", () => {
@@ -17,10 +17,12 @@ describe("sanitizeProviderHeaders", () => {
     ).toEqual({
       Authorization: "Bearer provider-token",
       "Content-Type": "application/json",
+      "installation_session_id": "persistent-session-uuid",
+      "X-OpenCode-Session-ID": "persistent-session-id",
     })
   })
 
-  test("preserves credentials and provider-owned ephemeral session headers", () => {
+  test("preserves credentials and provider-defined session headers", () => {
     const headers = {
       Authorization: "Bearer token",
       "x-api-key": "provider-key",
@@ -29,5 +31,15 @@ describe("sanitizeProviderHeaders", () => {
     }
 
     expect(sanitizeProviderHeaders(headers as never)).toEqual(headers)
+  })
+})
+
+describe("sanitizeProviderUrl", () => {
+  test("removes persistent host identity query parameters only", () => {
+    expect(
+      sanitizeProviderUrl(
+        "https://provider.example/v1?machine_id=host&device-uuid=device&installationIdentifier=install&model=deepseek",
+      ),
+    ).toBe("https://provider.example/v1?model=deepseek")
   })
 })
