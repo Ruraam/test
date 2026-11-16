@@ -4,7 +4,7 @@ const isPersistentIdentityName = (name: string) => {
   const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, "")
   const hasPersistentHostIdentity = /(machine|device|installation|install).*?(id|uuid|identifier)$/.test(normalized)
   const hasOpenCodeIdentity =
-    normalized.startsWith("xopencode") && /(session|project|parent)/.test(normalized)
+    normalized.includes("opencode") && /(session|project|parent)/.test(normalized)
   const hasParentSessionIdentity = /parent.*session.*(id|uuid|identifier)$/.test(normalized)
   return hasPersistentHostIdentity || hasOpenCodeIdentity || hasParentSessionIdentity
 }
