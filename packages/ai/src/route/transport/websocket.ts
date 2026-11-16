@@ -9,7 +9,7 @@ import {
   type TransportOperation,
 } from "../../schema/index.js"
 import type { ChannelObservation, WebSocketChannelExecutor } from "./websocket-channel.js"
-import { sanitizeProviderHeaders } from "./privacy-headers.js"
+import { sanitizeProviderHeaders, sanitizeProviderUrl } from "./privacy-headers.js"
 
 export interface WebSocketRequest {
   readonly url: string
@@ -187,18 +187,34 @@ export const toWebSocketUrl = (value: string) =>
 export const open = (input: WebSocketRequest) =>
   Effect.gen(function* () {
     const constructor = yield* Socket.WebSocketConstructor
+    const sanitized = yield* Effect.try({
+      try: () => ({
+        ...input,
+        url: sanitizeProviderUrl(input.url),
+        headers: sanitizeProviderHeaders(input.headers),
+      }),
+      catch: (error) =>
+        transportError(error instanceof Error ? error.message : "Invalid WebSocket request", {
+          cause: error,
+          url: input.url,
+          operation: "request",
+          code: "invalid-request",
+          phase: "prepare",
+          delivery: "not-sent",
+        }),
+    })
     const ws = yield* Effect.try({
-      try: () => constructor(input.url, { headers: sanitizeProviderHeaders(input.headers) }),
+      try: () => constructor(sanitized.url, { headers: sanitized.headers }),
       catch: (error) =>
         transportError(error instanceof Error ? error.message : "Failed to construct WebSocket", {
           cause: error,
-          url: input.url,
+          url: sanitized.url,
           operation: "request",
           phase: "connect",
           delivery: "not-sent",
         }),
     })
-    return yield* fromWebSocket(ws, input)
+    return yield* fromWebSocket(ws, sanitized)
   })
 
 export const fromWebSocket = (
