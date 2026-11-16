@@ -9,7 +9,7 @@ import {
   type TransportOperation,
 } from "../../schema/index.js"
 import type { ChannelObservation, WebSocketChannelExecutor } from "./websocket-channel.js"
-import { sanitizeProviderHeaders, sanitizeProviderUrl } from "./privacy-headers.js"
+import { sanitizeProviderHeaders, sanitizeProviderPayload, sanitizeProviderUrl } from "./privacy-headers.js"
 
 export interface WebSocketRequest {
   readonly url: string
@@ -320,7 +320,7 @@ export const fromWebSocket = (
               }),
             )
           return Effect.try({
-            try: () => ws.send(message),
+            try: () => ws.send(sanitizeProviderPayload(message)),
             catch: (error) =>
               transportError(error instanceof Error ? error.message : "Failed to send WebSocket message", {
                 cause: error,
