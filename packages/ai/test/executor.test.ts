@@ -772,8 +772,8 @@ describe("WebSocket channel execution", () => {
       const sent: string[] = []
       class TestSocket extends EventTarget {
         readyState = globalThis.WebSocket.OPEN
-        send(message: string) {
-          sent.push(message)
+        send(message: string | ArrayBufferLike | Blob | ArrayBufferView) {
+          sent.push(typeof message === "string" ? message : String(message))
         }
         close() {}
       }
