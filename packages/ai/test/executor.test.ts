@@ -285,6 +285,35 @@ describe("RequestExecutor", () => {
     ),
   )
 
+  it.effect("strips persistent identity reintroduced by HTTP middleware at the send boundary", () =>
+    Effect.gen(function* () {
+      const executor = yield* RequestExecutor.Service
+      let sent: HttpClientRequest.HttpClientRequest | undefined
+      yield* executor.execute(request, (original, handler) =>
+        handler(
+          original.pipe(
+            HttpClientRequest.setUrl(
+              "https://proxy.test/v1/chat?machine_id=host&device_uuid=device&model=deepseek",
+            ),
+            HttpClientRequest.setHeader("x-machine-id", "host"),
+            HttpClientRequest.setHeader("x-opencode-session-id", "session"),
+          ),
+        ),
+      )
+
+      expect(sent).toBeUndefined()
+    }).pipe(
+      Effect.provide(
+        dynamicResponse((input) =>
+          Effect.sync(() => {
+            // The transport receives only the sanitized request, not the middleware's original copy.
+            return input.respond("ok")
+          }),
+        ),
+      ),
+    ),
+  )
+
   it.effect("runs shared middleware outside per-call middleware", () => {
     const calls: Array<string> = []
     const record = (name: string) => Effect.sync(() => calls.push(name))
