@@ -775,10 +775,16 @@ describe("WebSocket channel execution", () => {
         close() {}
       }
       const socket = new TestSocket()
-      const headers = Headers.fromInput({ authorization: "Bearer secret", "openai-beta": "responses-websocket" })
+      const headers = Headers.fromInput({
+        authorization: "Bearer secret",
+        "openai-beta": "responses-websocket",
+        "x-machine-id": "host",
+        "x-opencode-session-id": "session",
+      })
+      const safeHeaders = Headers.fromInput({ authorization: "Bearer secret", "openai-beta": "responses-websocket" })
       let observed: { url: string; options: Socket.WebSocketConstructorOptions | undefined } | undefined
       const connection = yield* WebSocketTransport.open({
-        url: "wss://provider.test/responses",
+        url: "wss://provider.test/responses?installation_id=install&model=deepseek",
         headers,
       }).pipe(
         Effect.provideService(Socket.WebSocketConstructor, (url, options) => {
@@ -786,7 +792,7 @@ describe("WebSocket channel execution", () => {
           return socket
         }),
       )
-      expect(observed).toEqual({ url: "wss://provider.test/responses", options: { headers } })
+      expect(observed).toEqual({ url: "wss://provider.test/responses?model=deepseek", options: { headers: safeHeaders } })
       const event = new CloseEvent("close", { code: 1011, reason: "upstream trace: req_close" })
       socket.dispatchEvent(event)
       const error = yield* connection.messages.pipe(Stream.runDrain, Effect.flip)
