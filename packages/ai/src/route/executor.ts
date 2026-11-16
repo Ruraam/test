@@ -235,31 +235,32 @@ export const stream = (
     }),
   )
 
-export const layer: Layer.Layer<Service, never, HttpClient.HttpClient> = Layer.effconst executeOnce = (request: HttpClientRequest.HttpClientRequest, middleware?: HttpMiddleware) =>
-        Effect.gen(function* () {
-          // Apply privacy filtering at the final send boundary, after every per-request middleware/hook.
-          const send = (input: HttpClientRequest.HttpClientRequest) =>
-            http
-              .execute(
-                HttpClientRequest.setUrl(
-                  HttpClientRequest.setHeaders(input, sanitizeProviderHeaders(input.headers)),
-                  sanitizeProviderUrl(input.url),
-                ),
-              )
-              .pipe(Effect.mapError((cause) => (cause instanceof Error ? cause : new Error(String(cause)))))
-
-          if (!middleware)
-            return yield* send(request).pipe(
-              Effect.mapError((error) => httpError({ error, request, operation: "request" })),
-              Effect.flatMap(statusError),
+export const layer: Layer.Layer<Service, never, HttpClient.HttpClient> = Layer.effect(
+  Service,
+  Effect.gen(function* () {
+    const http = yield* HttpClient.HttpClient
+    const executeOnce = (request: HttpClientRequest.HttpClientRequest, middleware?: HttpMiddleware) =>
+      Effect.gen(function* () {
+        // Apply privacy filtering at the final send boundary, after every per-request middleware/hook.
+        const send = (input: HttpClientRequest.HttpClientRequest) =>
+          http
+            .execute(
+              HttpClientRequest.setUrl(
+                HttpClientRequest.setHeaders(input, sanitizeProviderHeaders(input.headers)),
+                sanitizeProviderUrl(input.url),
+              ),
             )
+            .pipe(Effect.mapError((cause) => (cause instanceof Error ? cause : new Error(String(cause)))))
 
-          const response = yield* middleware(request, send).pipe(
+        if (!middleware)
+          return yield* send(request).pipe(
             Effect.mapError((error) => httpError({ error, request, operation: "request" })),
+            Effect.flatMap(statusError),
           )
-          return yield* statusError(response)
-        })
-    , request, operation: "request" })))
+
+        const response = yield* middleware(request, send).pipe(
+          Effect.mapError((error) => httpError({ error, request, operation: "request" })),
+        )
         return yield* statusError(response)
       })
     return Service.of({
