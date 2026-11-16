@@ -9,6 +9,7 @@ import {
   type TransportOperation,
 } from "../../schema/index.js"
 import type { ChannelObservation, WebSocketChannelExecutor } from "./websocket-channel.js"
+import { sanitizeProviderHeaders } from "./privacy-headers.js"
 
 export interface WebSocketRequest {
   readonly url: string
@@ -187,7 +188,7 @@ export const open = (input: WebSocketRequest) =>
   Effect.gen(function* () {
     const constructor = yield* Socket.WebSocketConstructor
     const ws = yield* Effect.try({
-      try: () => constructor(input.url, { headers: input.headers }),
+      try: () => constructor(input.url, { headers: sanitizeProviderHeaders(input.headers) }),
       catch: (error) =>
         transportError(error instanceof Error ? error.message : "Failed to construct WebSocket", {
           cause: error,

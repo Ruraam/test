@@ -17,6 +17,7 @@ import {
   type LLMRequest,
 } from "../../schema/index.js"
 import { RequestExecutor } from "../executor.js"
+import { sanitizeProviderHeaders } from "./privacy-headers.js"
 
 export type JsonRequestInput<Body> = TransportPrepareInput<Body>
 
@@ -61,7 +62,7 @@ export const jsonRequestParts = <Body>(input: JsonRequestInput<Body>) =>
         ...input.request.headers,
       }),
     })
-    return { url, jsonBody: body.jsonBody, bodyText: body.bodyText, headers }
+    return { url, jsonBody: body.jsonBody, bodyText: body.bodyText, headers: sanitizeProviderHeaders(headers) }
   })
 
 export interface HttpJsonInput<_Body, Frame> {
